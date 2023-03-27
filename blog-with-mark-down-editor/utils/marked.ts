@@ -1,5 +1,5 @@
 /**
- * 마크다운을 (h, b, i, a, br) 스타일을 적용한 HTML로 변환하는 함수
+ * 마크다운 내부의 (h, b, i, a, br) 태그 형식을 HTML로 변환하는 함수
  * @param markdown 변환할 마크다운
  * @returns 변환된 HTML
  */
@@ -25,6 +25,94 @@ const convertMarkdownToStyle = (markdown: string): string => {
   return html;
 };
 /**
+ * 마크다운 내부의 코드 블록 형식을 HTML로 변환하는 함수
+ * @param markdown 변환할 마크다운
+ * @returns 변환된 HTML
+ */
+const convertMarkdownToCodeBlock = (markdown: string): string => {
+  return markdown.replace(
+    // 코드블록 형태를 찾는 정규식
+    /```([a-z]*)\n([\s\S]*?)```/g,
+    (_, lang: string, code: string) => {
+      // 디폴트 값은 text lang에는 javascript, typescript등이 올 수 있다
+      // TODO: 추후 java, python등의 언어 추가
+      lang = lang.trim() || 'text';
+      // 각각 다른 색상을 입힐 클래스 이름 정의
+      const funcClass = 'code-func';
+      const classClass = 'code-class';
+      const methodClass = 'code-method';
+      const consoleClass = 'code-console';
+      // 코드 블록 내부에서 변수, 함수, 클래스, 메서드, console.log 등 찾는 정규식
+      const funcRegex = /\b(function)\s+([a-zA-Z_$][\w$]*)\b/g;
+      const classRegex = /\b(class)\s+([a-zA-Z_$][\w$]*)\b/g;
+      const methodRegex = /([a-zA-Z_$][\w$]*)\s*\(/g;
+      const consoleRegex = /\b(console)\b/g;
+
+      const highlightedCode = code
+        .replace(
+          funcRegex,
+          `<span class="${funcClass}">$1</span> <span class="${funcClass}">$2</span>`,
+        )
+        .replace(
+          classRegex,
+          `<span class="${classClass}">$1</span> <span class="${classClass}">$2</span>`,
+        )
+        .replace(methodRegex, `<span class="${methodClass}">$1</span>(`)
+        .replace(consoleRegex, `<span class="${consoleClass}">$1</span>`);
+      return `<pre><code class="${lang}">${highlightedCode.trim()}</code></pre>`;
+    },
+  );
+};
+/**
+ * align 표현식을 실제 text-align에 넣을 값으로 변환하는 함수
+ * @param input 사용자로 부터 입력받은 align값 (':--', ':-:', '--:' 등)
+ * @returns 해당하는 align 값 ('center', 'left', 'right')
+ */
+const convertAlignFrom = (input: string): string => {
+  if (input[0] === ':' && input.at(-1) === ':') return 'center';
+  if (input[0] === ':') return 'left';
+  if (input.at(-1) === ':') return 'right';
+  return 'center';
+};
+/**
+ * 마크다운 내부의 테이블 형식을 HTML로 변환하는 함수
+ * @param markdown 변환할 마크다운
+ * @returns 변환된 HTML
+ */
+const convertMarkdownToTable = (markdown: string): string => {
+  return markdown.replace(/^((\|.*\|)\s*\n)+/gm, (match: string) => {
+    match = match.trim();
+    const rows = match.split('\n');
+    // 헤더, 구분선, 데이터 영역을 분리
+    const [header, align, ...data] = rows.map((row) =>
+      row.split('|').map((cell) => cell.trim()),
+    );
+    // 헤더부 변환
+    let html = '<table><thead><tr>';
+    header.forEach((cell, i) => {
+      html += `<th style="text-align: ${convertAlignFrom(
+        align[i],
+      )}">${cell}</th>`;
+    });
+    html += '</tr></thead><tbody>';
+
+    // 데이터부 변환
+    data.forEach((row) => {
+      html += '<tr>';
+      row.forEach((cell, i) => {
+        html += `<td style="text-align: ${convertAlignFrom(
+          align[i],
+        )}">${cell}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+
+    return html;
+  });
+};
+
+/**
  * 마크다운을 HTML 형태로 변환하는 함수
  * @param markdown 변환할 마크다운
  * @param fns 변환에 사용할 함수 리스트
@@ -40,11 +128,17 @@ const convertMarkdownToHtml = (
   }
   return html;
 };
+
 /**
  * 마크다운을 HTML형태의 문자열로 파싱하는 함수
  * @param {string} markdown 변환할 마크다운
  * @returns {string} 변환된 HTML
  */
 export const parseMarkdown = (markdown: string): string => {
-  return convertMarkdownToHtml(markdown, convertMarkdownToStyle);
+  return convertMarkdownToHtml(
+    markdown,
+    convertMarkdownToCodeBlock,
+    convertMarkdownToTable,
+    convertMarkdownToStyle,
+  );
 };
