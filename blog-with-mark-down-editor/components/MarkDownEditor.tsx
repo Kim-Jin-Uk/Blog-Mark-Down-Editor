@@ -12,6 +12,13 @@ const MarkdownEditor = () => {
   const [markdown, setMarkdown] = useState('');
   const [innerHtml, setInnerHtml] = useState('');
 
+  const tabHandler = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === 'Tab') {
+      event.preventDefault();
+      setMarkdown(markdown + '    ');
+    }
+  };
+
   const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMarkdown(event.target.value);
   };
@@ -23,7 +30,11 @@ const MarkdownEditor = () => {
 
   return (
     <div>
-      <textarea value={markdown} onChange={handleChange} />
+      <textarea
+        value={markdown}
+        onKeyDown={tabHandler}
+        onChange={handleChange}
+      />
       <div dangerouslySetInnerHTML={{ __html: innerHtml }} />
     </div>
   );
