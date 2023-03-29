@@ -4,25 +4,27 @@
  * @created 23-03-26
  * @updated 23-03-29
  */
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { parseMarkdown } from 'utils/convertMarkdownToHTML';
+import { useDebounce } from 'utils/hooks/useDebounce';
 
 const MarkdownEditor = () => {
   const [markdown, setMarkdown] = useState('');
+  const [innerHtml, setInnerHtml] = useState('');
 
   const handleChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMarkdown(event.target.value);
   };
 
-  const getMarkdownAsHtml = () => {
-    console.log(parseMarkdown(markdown));
-    return { __html: parseMarkdown(markdown) };
-  };
+  useEffect(
+    useDebounce(() => setInnerHtml(parseMarkdown(markdown)), 200),
+    [markdown],
+  );
 
   return (
     <div>
       <textarea value={markdown} onChange={handleChange} />
-      <div dangerouslySetInnerHTML={getMarkdownAsHtml()} />
+      <div dangerouslySetInnerHTML={{ __html: innerHtml }} />
     </div>
   );
 };
