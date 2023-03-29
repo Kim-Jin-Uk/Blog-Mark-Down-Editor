@@ -9,6 +9,7 @@ const MarkdownEditor = () => {
   };
 
   const getMarkdownAsHtml = () => {
+    console.log(parseMarkdown(markdown));
     return { __html: parseMarkdown(markdown) };
   };
 

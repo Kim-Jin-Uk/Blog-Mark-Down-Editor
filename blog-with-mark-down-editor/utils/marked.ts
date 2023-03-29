@@ -2,9 +2,10 @@
  * @copyright 김진욱
  * @description 마크다운형식의 문자열을 HTML로 변환하는 기능을 수행합니다
  * @created 23-03-26
- * @updated 23-03-28
+ * @updated 23-03-29
  */
-import { UlNode } from './types';
+
+import { ListNode } from './types';
 
 /**
  * 마크다운 내부의 (h, b, i, a, br) 태그 형식을 HTML로 변환하는 함수
@@ -23,11 +24,6 @@ const convertMarkdownToStyle = (markdown: string): string => {
   html = html.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>');
   // 이탤릭체 변환
   html = html.replace(/_(.*?)_/g, '<i>$1</i>');
-  // 링크 변환
-  html = html.replace(
-    /\[(.*?)\]\((.*?)\)/g,
-    '<a href="$2" target="_blank">$1</a>',
-  );
   // 줄바꿈 변환
   html = html.replace(/\n/g, '<br>');
   return html;
@@ -122,57 +118,131 @@ const convertMarkdownToTable = (markdown: string): string => {
     return markdown;
   }
 };
+/**
+ * 리스트 노드배열을 HTML형식으로 변환하는 함수
+ * @param nodes 변환할 리스트 노드 배열 (깊이, 태그명, 내용값)
+ * @returns 변환된 리스트 형식의 HTML
+ */
+const convertNodeToList = (nodes: ListNode[]): string => {
+  const stack = [];
+  let result = '';
 
-const convertMarkdownToList = (markdown: string): string => {
-  const lines = markdown.split('\n');
-  const ulStack: UlNode[] = [];
-  let html = '';
+  for (const node of nodes) {
+    if (!stack.length) {
+      stack.push(node);
+      result += `<${node.tag}><li>${node.value}</li>`;
+      continue;
+    }
+    const prev = stack.at(-1);
 
-  const pushListNode = (tabCount: number, type: 'ul' | 'ol') => {
-    let htmlTag = type === 'ul' ? '<ul>' : '<ol>';
-    html += htmlTag;
-    ulStack.push({ tabCount, type });
-  };
+    if (node.depth === prev.depth) {
+      if (node.tag === prev.tag) result += `<li>${node.value}</li>`;
+      else {
+        result += `</${prev.tag}><${node.tag}><li>${node.value}</li>`;
+        stack.pop();
+        stack.push(node);
+      }
+    } else if (node.depth > prev.depth) {
+      let depthLI = '';
 
-  const popListNode = () => {
-    html += '</li>';
-    const node = ulStack.pop();
-    html += node.type === 'ul' ? '</ul>' : '</ol>';
-  };
+      for (let i = 1; i < node.depth - prev.depth; i++) {
+        depthLI += '<li>';
+        stack.push({ depth: i + prev.depth, tag: 'li', value: '' });
+      }
+      result += `${depthLI}<${node.tag}><li>${node.value}</li>`;
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const listMatch = line.match(/^(\s*)(-|\*|\d+\.)\s(.+)/);
-
-    if (listMatch) {
-      let listItem = listMatch[3];
-
-      if (
-        ulStack.length > 0 &&
-        listMatch[1].length < ulStack[ulStack.length - 1].tabCount
-      ) {
-        while (
-          ulStack.length > 0 &&
-          listMatch[1].length < ulStack[ulStack.length - 1].tabCount
-        )
-          popListNode();
+      stack.push(node);
+    } else {
+      while (stack.length) {
+        const prev = stack.pop();
+        if (prev.depth === node.depth) {
+          stack.push(prev);
+          break;
+        }
+        result += `</${prev.tag}>`;
       }
 
-      if (listMatch[1].length === (ulStack[ulStack.length - 1]?.tabCount ?? -1))
-        html += '</li>';
-      else if (
-        listMatch[1].length > (ulStack[ulStack.length - 1]?.tabCount ?? -1)
-      )
-        pushListNode(listMatch[1].length, listMatch[2] === '-' ? 'ul' : 'ol');
-
-      html += '<li>' + listItem;
-    } else {
-      while (ulStack.length > 0) popListNode();
-      html += line + '\n';
+      if (node.tag === prev.tag) result += `<li>${node.value}</li>`;
+      else {
+        result += `</${prev.tag}><li>${node.value}</li>`;
+        stack.pop();
+        stack.push(node);
+      }
     }
   }
+  while (stack.length) result += `</${stack.pop().tag}>`;
 
-  while (ulStack.length > 0) popListNode();
+  return result + '\n';
+};
+/**
+ * 마크다운 내부의 리스트 형식을 HTML로 변환하는 함수
+ * @param markdown 변환할 마크다운
+ * @returns 변환된 HTML
+ */
+const convertMarkdownToList = (markdown: string): string => {
+  const lines = markdown.split('\n');
+  let previousIndent = -1;
+  let inList = false;
+  let listNodes: ListNode[] = [];
+  let result = '';
+
+  for (const line of lines) {
+    const indent = Math.min(
+      Math.ceil(line.search(/\S/) / 4),
+      previousIndent + 1,
+    );
+    previousIndent = indent;
+
+    const trimmedLine = line.trim();
+    if (/^[-+*]\s+/.test(trimmedLine) || /^\d+\.\s+/.test(trimmedLine)) {
+      const node: ListNode = {
+        depth: indent,
+        tag: /^[-+*]\s+/.test(trimmedLine) ? 'ul' : 'ol',
+        value: /^[-+*]\s+/.test(trimmedLine)
+          ? trimmedLine.slice(2)
+          : trimmedLine.slice(trimmedLine.indexOf('.') + 2),
+      };
+      inList = true;
+
+      listNodes.push(node);
+    } else {
+      if (inList) {
+        result += convertNodeToList(listNodes);
+        inList = false;
+        listNodes = [];
+      }
+      result += `${line}\n`;
+    }
+  }
+  if (inList) result += convertNodeToList(listNodes);
+
+  return result;
+};
+/**
+ * 마크다운 내부의 링크 형식을 HTML로 변환하는 함수
+ * @param markdown 변환할 마크다운
+ * @returns 변환된 HTML
+ */
+const convertMarkdownToLink = (markdown: string): string => {
+  let html = markdown;
+  // 링크 변환
+  html = html.replace(
+    /\[([^\]]+)\]\(([^)\s]+)(?:\s+"([^"]+)")?\)/g,
+    '<a href="$2" title="$3">$1</a>',
+  );
+  // 참조 링크 변환
+  html = html.replace(/\[([^\]]+)\]\[([^\]]+)\]/g, (_, p1, p2) => {
+    return '<a href="' + p2 + '">' + p1 + '</a>';
+  });
+  // 링크 설명 변환
+  html = html.replace(
+    /\[([^\]]+)\]:\s*(\S+)(?:\s+"([^"]+)")?/g,
+    (_, p1, p2, p3) => {
+      return '<a href="' + p2 + '" title="' + (p3 || '') + '">' + p1 + '</a>';
+    },
+  );
+  // URL 변환
+  html = html.replace(/(^|[^"])(https?:\/\/\S+)/g, '$1<a href="$2">$2</a>');
 
   return html;
 };
@@ -203,8 +273,9 @@ export const parseMarkdown = (markdown: string): string => {
   return convertMarkdownToHtml(
     markdown,
     convertMarkdownToCodeBlock,
-    convertMarkdownToTable,
     convertMarkdownToList,
+    convertMarkdownToTable,
+    convertMarkdownToLink,
     convertMarkdownToStyle,
   );
 };
