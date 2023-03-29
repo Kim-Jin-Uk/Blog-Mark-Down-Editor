@@ -9,13 +9,11 @@ export const useDebounce = <T extends any[]>(
   callback: (...params: T) => void,
   time: number,
 ) => {
-  console.log('debounce');
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   return (...params: T) => {
     if (timer.current) clearTimeout(timer.current);
 
     timer.current = setTimeout(() => {
-      console.log('real', ...params);
       callback(...params);
       timer.current = null;
     }, time);
