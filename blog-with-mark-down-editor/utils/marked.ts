@@ -34,7 +34,7 @@ const convertMarkdownToStyle = (markdown: string): string => {
  * @returns 변환된 HTML
  */
 const convertMarkdownToCodeBlock = (markdown: string): string => {
-  return markdown.replace(
+  const html = markdown.replace(
     // 코드블록 형태를 찾는 정규식
     /```([a-z]*)\n([\s\S]*?)```/g,
     (_, lang: string, code: string) => {
@@ -66,16 +66,17 @@ const convertMarkdownToCodeBlock = (markdown: string): string => {
       return `<pre><code class="${lang}">${highlightedCode.trim()}</code></pre>`;
     },
   );
+  return html;
 };
 /**
  * align 표현식을 실제 text-align에 넣을 값으로 변환하는 함수
  * @param input 사용자로 부터 입력받은 align값 (':--', ':-:', '--:' 등)
  * @returns 해당하는 align 값 ('center', 'left', 'right')
  */
-const convertAlignFrom = (input: string): string => {
-  if (input[0] === ':' && input.at(-1) === ':') return 'center';
-  if (input[0] === ':') return 'left';
-  if (input.at(-1) === ':') return 'right';
+const convertAlignFormatToStyle = (format: string): string => {
+  if (format[0] === ':' && format.at(-1) === ':') return 'center';
+  if (format[0] === ':') return 'left';
+  if (format.at(-1) === ':') return 'right';
   return 'center';
 };
 /**
@@ -84,39 +85,35 @@ const convertAlignFrom = (input: string): string => {
  * @returns 변환된 HTML
  */
 const convertMarkdownToTable = (markdown: string): string => {
-  try {
-    return markdown.replace(/^((\|.*\|)\s*\n)+/gm, (match: string) => {
-      match = match.trim();
-      const rows = match.split('\n');
-      // 헤더, 구분선, 데이터 영역을 분리
-      const [header, align, ...data] = rows.map((row) =>
-        row.split('|').map((cell) => cell.trim()),
-      );
-      // 헤더부 변환
-      let html = '<table><thead><tr>';
-      header.forEach((cell, i) => {
-        html += `<th style="text-align: ${convertAlignFrom(
-          align[i],
-        )}">${cell}</th>`;
-      });
-      html += '</tr></thead><tbody>';
-
-      // 데이터부 변환
-      data.forEach((row) => {
-        html += '<tr>';
-        row.forEach((cell, i) => {
-          html += `<td style="text-align: ${convertAlignFrom(
-            align[i],
-          )}">${cell}</td>`;
-        });
-        html += '</tr>';
-      });
-      html += '</tbody></table>';
-      return html;
+  return markdown.replace(/^((\|.*\|)\s*\n)+/gm, (match: string) => {
+    match = match.trim();
+    const rows = match.split('\n');
+    // 헤더, 구분선, 데이터 영역을 분리
+    const [header, align, ...data] = rows.map((row) =>
+      row.split('|').map((cell) => cell.trim()),
+    );
+    // 헤더부 변환
+    let html = '<table><thead><tr>';
+    header.forEach((cell, i) => {
+      html += `<th style="text-align: ${convertAlignFormatToStyle(
+        align[i],
+      )}">${cell}</th>`;
     });
-  } catch (err) {
-    return markdown;
-  }
+    html += '</tr></thead><tbody>';
+
+    // 데이터부 변환
+    data.forEach((row) => {
+      html += '<tr>';
+      row.forEach((cell, i) => {
+        html += `<td style="text-align: ${convertAlignFormatToStyle(
+          align[i],
+        )}">${cell}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+    return html;
+  });
 };
 /**
  * 리스트 노드배열을 HTML형식으로 변환하는 함수
@@ -125,20 +122,20 @@ const convertMarkdownToTable = (markdown: string): string => {
  */
 const convertNodeToList = (nodes: ListNode[]): string => {
   const stack = [];
-  let result = '';
+  let html = '';
 
   for (const node of nodes) {
     if (!stack.length) {
       stack.push(node);
-      result += `<${node.tag}><li>${node.value}</li>`;
+      html += `<${node.tag}><li>${node.value}</li>`;
       continue;
     }
     const prev = stack.at(-1);
 
     if (node.depth === prev.depth) {
-      if (node.tag === prev.tag) result += `<li>${node.value}</li>`;
+      if (node.tag === prev.tag) html += `<li>${node.value}</li>`;
       else {
-        result += `</${prev.tag}><${node.tag}><li>${node.value}</li>`;
+        html += `</${prev.tag}><${node.tag}><li>${node.value}</li>`;
         stack.pop();
         stack.push(node);
       }
@@ -149,7 +146,7 @@ const convertNodeToList = (nodes: ListNode[]): string => {
         depthLI += '<li>';
         stack.push({ depth: i + prev.depth, tag: 'li', value: '' });
       }
-      result += `${depthLI}<${node.tag}><li>${node.value}</li>`;
+      html += `${depthLI}<${node.tag}><li>${node.value}</li>`;
 
       stack.push(node);
     } else {
@@ -159,20 +156,20 @@ const convertNodeToList = (nodes: ListNode[]): string => {
           stack.push(prev);
           break;
         }
-        result += `</${prev.tag}>`;
+        html += `</${prev.tag}>`;
       }
 
-      if (node.tag === prev.tag) result += `<li>${node.value}</li>`;
+      if (node.tag === prev.tag) html += `<li>${node.value}</li>`;
       else {
-        result += `</${prev.tag}><li>${node.value}</li>`;
+        html += `</${prev.tag}><li>${node.value}</li>`;
         stack.pop();
         stack.push(node);
       }
     }
   }
-  while (stack.length) result += `</${stack.pop().tag}>`;
+  while (stack.length) html += `</${stack.pop().tag}>`;
 
-  return result + '\n';
+  return html + '\n';
 };
 /**
  * 마크다운 내부의 리스트 형식을 HTML로 변환하는 함수
@@ -184,7 +181,7 @@ const convertMarkdownToList = (markdown: string): string => {
   let previousIndent = -1;
   let inList = false;
   let listNodes: ListNode[] = [];
-  let result = '';
+  let html = '';
 
   for (const line of lines) {
     const indent = Math.min(
@@ -207,16 +204,16 @@ const convertMarkdownToList = (markdown: string): string => {
       listNodes.push(node);
     } else {
       if (inList) {
-        result += convertNodeToList(listNodes);
+        html += convertNodeToList(listNodes);
         inList = false;
         listNodes = [];
       }
-      result += `${line}\n`;
+      html += `${line}\n`;
     }
   }
-  if (inList) result += convertNodeToList(listNodes);
+  if (inList) html += convertNodeToList(listNodes);
 
-  return result;
+  return html;
 };
 /**
  * 마크다운 내부의 링크 형식을 HTML로 변환하는 함수
@@ -246,6 +243,91 @@ const convertMarkdownToLink = (markdown: string): string => {
 
   return html;
 };
+/**
+ * 마크다운 내부의 인용구 형식을 HTML로 변환하는 함수
+ * @param markdown 변환할 마크다운
+ * @returns 변환된 HTML
+ */
+const convertMarkdownToQuote = (markdown: string): string => {
+  let lines = markdown.split('\n');
+  let html = '';
+  let nestedQuoteLevel = 0;
+  let currentQuoteLevel = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i];
+    let quoteLevel = 0;
+
+    while (line.startsWith('>')) {
+      quoteLevel++;
+      line = line.slice(1);
+    }
+
+    if (quoteLevel > 0) {
+      // 중첩된 인용구 처리
+      // 현재 인용구 depth가 더 깊어진 경우
+      if (quoteLevel > currentQuoteLevel) {
+        nestedQuoteLevel += quoteLevel - currentQuoteLevel;
+        html += '<blockquote>';
+      }
+      // 현재 인용구 depth가 더 얕아진 경우
+      else if (quoteLevel < currentQuoteLevel) {
+        nestedQuoteLevel -= currentQuoteLevel - quoteLevel;
+        html += '</blockquote>'.repeat(currentQuoteLevel - quoteLevel);
+      }
+      currentQuoteLevel = quoteLevel;
+      html += line.trim() + '\n';
+    } else {
+      // 중첩된 만큼 닫아주기
+      if (currentQuoteLevel > 0) {
+        html += '</blockquote>'.repeat(currentQuoteLevel);
+        currentQuoteLevel = 0;
+        nestedQuoteLevel = 0;
+      }
+      html += line.trim() + '\n';
+    }
+  }
+
+  if (nestedQuoteLevel > 0) {
+    html +=
+      '</blockquote>'.repeat(nestedQuoteLevel) + nestedQuoteLevel ? '\n' : '';
+  }
+
+  return html;
+};
+/**
+ * 마크다운 내부의 인라인 코드 형식을 HTML로 변환하는 함수
+ * @param markdown 변환할 마크다운
+ * @returns 변환된 HTML
+ */
+const convertMarkdownToInlineCode = (markdown: string): string => {
+  const inlineCodeRegex = /`([^`]+)`/g;
+  const html = markdown.replace(inlineCodeRegex, '<code>$1</code>');
+  return html;
+};
+/**
+ * 마크다운 내부의 수평선 코드 형식을 HTML로 변환하는 함수
+ * @param markdown 변환할 마크다운
+ * @returns 변환된 HTML
+ */
+const convertMarkdownToHorizontalRule = (markdown: string): string => {
+  const hrRegex = /^([-*=_]{3,})$/gm;
+  const html = markdown.replace(hrRegex, '<hr>');
+  return html;
+};
+/**
+ * 마크다운 내부의 이미지 코드 형식을 HTML로 변환하는 함수
+ * @param markdown 변환할 마크다운
+ * @returns 변환된 HTML
+ */
+const convertMarkdownToImg = (markdown: string): string => {
+  const imageRegex = /!\[([^\]]+)\]\(([^\s]+)(?:\s+"([^"]+)")?\)/g;
+  const html = markdown.replace(
+    imageRegex,
+    '<img src="$2" alt="$1" title="$3">',
+  );
+  return html;
+};
 
 /**
  * 마크다운을 HTML 형태로 변환하는 함수
@@ -259,7 +341,11 @@ const convertMarkdownToHtml = (
 ): string => {
   let html = markdown;
   for (const f of fns) {
-    html = f(html);
+    try {
+      html = f(html);
+    } catch {
+      html = html;
+    }
   }
   return html;
 };
@@ -273,9 +359,13 @@ export const parseMarkdown = (markdown: string): string => {
   return convertMarkdownToHtml(
     markdown,
     convertMarkdownToCodeBlock,
+    convertMarkdownToInlineCode,
     convertMarkdownToList,
     convertMarkdownToTable,
+    convertMarkdownToHorizontalRule,
     convertMarkdownToLink,
+    convertMarkdownToImg,
+    convertMarkdownToQuote,
     convertMarkdownToStyle,
   );
 };
