@@ -316,7 +316,7 @@ const convertMarkdownToHorizontalRule = (markdown: string): string => {
   return html;
 };
 /**
- * 마크다운 내부의 이미지 코드 형식을 HTML로 변환하는 함수
+ * 마크다운 내부의 이미지 형식을 HTML로 변환하는 함수
  * @param markdown 변환할 마크다운
  * @returns 변환된 HTML
  */
