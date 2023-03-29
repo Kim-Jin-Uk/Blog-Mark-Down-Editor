@@ -14,7 +14,7 @@ import { ListNode } from './types';
  * @param node 현재 리스트 아이템
  * @returns 변환된 HTML
  */
-const getHtmlWhenDepthIsSame = (
+const handleSameDepthItems = (
   html: string,
   stack: ListNode[],
   prev: ListNode,
@@ -50,7 +50,7 @@ const convertNodeToList = (nodes: ListNode[]): string => {
     let prev = stack.at(-1);
     // case 1 직전 아이템과 깊이가 동일한 경우
     if (node.depth === prev.depth) {
-      html = getHtmlWhenDepthIsSame(html, stack, prev, node);
+      html = handleSameDepthItems(html, stack, prev, node);
     }
     // case 2 직전 아이템 보다 깊이가 깊어진 경우
     else if (node.depth > prev.depth) {
@@ -70,7 +70,7 @@ const convertNodeToList = (nodes: ListNode[]): string => {
         html += `</${beClosed.tag}>`;
       }
       // 이후 과정은 case 1과 상동
-      html = getHtmlWhenDepthIsSame(html, stack, prev, node);
+      html = handleSameDepthItems(html, stack, prev, node);
     }
   }
   while (stack.length) html += `</${stack.pop().tag}>`;
