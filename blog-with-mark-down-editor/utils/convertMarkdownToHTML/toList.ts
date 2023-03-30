@@ -93,7 +93,8 @@ const convertNodeToList = (nodes: ListNode[]): string => {
  * @returns 변환된 HTML
  */
 export const convertMarkdownToList = (markdown: string): string => {
-  const lines = markdown.split('\n');
+  const convertedtabMarkdown = markdown.replace(/\t/g, '    ');
+  const lines = convertedtabMarkdown.split('\n');
   // 리스트 아이템 요소인지를 판별
   let inList = false;
   // 리스트 아이템 요소를 저장
