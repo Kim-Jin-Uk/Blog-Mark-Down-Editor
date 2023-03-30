@@ -44,7 +44,12 @@ const convertNodeToList = (nodes: ListNode[]): string => {
     if (!stack.length) {
       // 스택이 빈 경우는 처음 들어온 리스트 아이템
       stack.push(node);
-      html += `<${node.tag}><li>${node.value}</li>`;
+      let liOfDepth = '';
+      for (let i = 1; i < node.depth; i++) {
+        liOfDepth += '<ul>';
+        stack.push({ depth: i, tag: 'ul', value: '' });
+      }
+      html += `${liOfDepth}<${node.tag}><li>${node.value}</li>`;
       continue;
     }
     let prev = stack.at(-1);
@@ -54,7 +59,12 @@ const convertNodeToList = (nodes: ListNode[]): string => {
     }
     // case 2 직전 아이템 보다 깊이가 깊어진 경우
     else if (node.depth > prev.depth) {
-      html += `<${node.tag}><li>${node.value}</li>`;
+      let liOfDiffDepth = '';
+      for (let i = 1; i < node.depth - prev.depth; i++) {
+        liOfDiffDepth += '<ul>';
+        stack.push({ depth: i + prev.depth, tag: 'ul', value: '' });
+      }
+      html += `${liOfDiffDepth}<${node.tag}><li>${node.value}</li>`;
       stack.push(node);
     }
     // case 3 직전 아이템 보다 깊이가 얕아진 경우
@@ -84,8 +94,6 @@ const convertNodeToList = (nodes: ListNode[]): string => {
  */
 export const convertMarkdownToList = (markdown: string): string => {
   const lines = markdown.split('\n');
-  // 직전 깊이를 저장
-  let previousIndent = -1;
   // 리스트 아이템 요소인지를 판별
   let inList = false;
   // 리스트 아이템 요소를 저장
@@ -94,13 +102,8 @@ export const convertMarkdownToList = (markdown: string): string => {
   let html = '';
 
   for (const line of lines) {
-    // 4칸의 공백으로 깊이를 판단 깊이가 2단계이상 깊어질 수 없음
-    const indent = Math.min(
-      Math.ceil(line.search(/\S/) / 4),
-      previousIndent + 1,
-    );
-    // 직전 깊이 갱신
-    previousIndent = indent;
+    // 4칸의 공백으로 깊이를 판단
+    const indent = Math.ceil(line.search(/\S/) / 4);
     // 불필요한 공백 제거
     const trimmedLine = line.trim();
     if (/^[-+*]\s+/.test(trimmedLine) || /^\d+\.\s+/.test(trimmedLine)) {
