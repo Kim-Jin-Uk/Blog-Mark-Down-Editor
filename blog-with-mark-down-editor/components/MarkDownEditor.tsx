@@ -15,7 +15,19 @@ const MarkdownEditor = () => {
   const tabHandler = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === 'Tab') {
       event.preventDefault();
-      setMarkdown(markdown + '    ');
+      const textarea = event.currentTarget;
+      const { selectionStart, selectionEnd } = textarea;
+      const newMarkdown = `${markdown.substring(
+        0,
+        selectionStart,
+      )}\t${markdown.substring(selectionEnd)}`;
+      setMarkdown(newMarkdown);
+      const newCursorPosition = selectionStart + 1;
+      // setMarkdown은 비동기 이므로 리페인트 이전에 호출되는 requestAnimationFrame을 통해 커서 위치를 조정
+      requestAnimationFrame(() => {
+        textarea.selectionStart = newCursorPosition;
+        textarea.selectionEnd = newCursorPosition;
+      });
     }
   };
 
