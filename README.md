@@ -50,3 +50,12 @@
   
 - 링크 변환
   * 테이블을 표현하는 표현식을 판별하여 `table`, `thead`, `tbody`, `th`, `tr`, `td` 태그등으로 변환합니다. 
+
+### 직면했던 문제
+- Tab 입력
+  > 일반적으로 `textarea` 에서는 tab키를 입력할 수 없습니다.
+  > 이를 개선 하고자 `event.preventDefault()`를 통해 기본 이벤트를 취소하고 `/t`문자열을 추가해 주었습니다.
+  > 이때 `textarea`내부의 문자열을 수정하기에 커서의 위치가 제일 마지막으로 이동하는 문제가 발생합니다.
+  > 이를 개선하고자 `textarea`의 `selectionStart`, `selectionEnd`를 조작하여 해결했습니다.
+  > 이때 `SetState`의 경우 비동기로 처리되므로 위 문제가 해결되지 않습니다.
+  > 이를 개선하고자 `requestAnimationFrame`을 통해 리페인트 이전에 커서 위치를 조작하여 해결했습니다.
