@@ -44,7 +44,7 @@ const convertMarkdownToHtml = (
  * @returns {string} 변환된 HTML
  */
 export const parseMarkdown = (markdown: string): string => {
-  return convertMarkdownToHtml(
+  const html = convertMarkdownToHtml(
     markdown,
     convertMarkdownToCodeBlock,
     convertMarkdownToInlineCode,
@@ -56,4 +56,5 @@ export const parseMarkdown = (markdown: string): string => {
     convertMarkdownToQuote,
     convertMarkdownToSimpleTag,
   );
+  return html;
 };

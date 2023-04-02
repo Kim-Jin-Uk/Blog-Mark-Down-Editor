@@ -45,8 +45,8 @@ export const convertMarkdownToQuote = (markdown: string): string => {
         html += '</blockquote>'.repeat(currentQuoteLevel);
         currentQuoteLevel = 0;
         nestedQuoteLevel = 0;
-      }
-      html += line.trim() + '\n';
+        html += line.trim() + '\n';
+      } else html += line + '\n';
     }
   }
 
