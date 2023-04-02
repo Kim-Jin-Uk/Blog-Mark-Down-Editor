@@ -1,0 +1,8 @@
+.code-block {
+  white-space: pre;
+  tab-size: 4;
+  & > code {
+    white-space: pre;
+    tab-size: 4;
+  }
+}

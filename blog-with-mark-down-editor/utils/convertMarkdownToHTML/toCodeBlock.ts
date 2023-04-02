@@ -40,7 +40,7 @@ export const convertMarkdownToCodeBlock = (markdown: string): string => {
         )
         .replace(methodRegex, `<span class="${methodClass}">$1</span>(`)
         .replace(consoleRegex, `<span class="${consoleClass}">$1</span>`);
-      return `<pre><code class="${lang}">${highlightedCode.trim()}</code></pre>`;
+      return `<pre class="code-block"><code class="${lang}">${highlightedCode.trim()}</code></pre>`;
     },
   );
   return html;
