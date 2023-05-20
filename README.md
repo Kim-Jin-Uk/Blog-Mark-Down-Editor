@@ -1,4 +1,7 @@
 # Blog-Mark-Down-Editor
+
+**https://github.com/Kim-Jin-Uk/blog-with-mark-down-editor**로 변경되었습니다
+
  마크다운 에디터를 적용한 블로그 서비스 입니다
  
 ## 마크다운 에디터
